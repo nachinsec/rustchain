@@ -1,3 +1,7 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+use sha2::{Digest, Sha256};
+
+#[derive(Debug)]
 pub struct Block {
     pub index: u64,
     pub timestamp: u128, // Unix timestamp in milliseconds
@@ -26,5 +30,32 @@ impl Block {
         let data_bytes = data.as_bytes();
         buffer.extend((data_bytes.len() as u32).to_be_bytes()); // length of data in bytes
         buffer.extend(data_bytes);
+
+        let mut hasher = Sha256::new();
+        hasher.update(buffer);
+
+        let result = hasher.finalize();
+
+        result
+            .iter()
+            .map(|byte| format!("{:02x}", byte))
+            .collect()
+    }
+
+    pub fn new(index: u64, previous_hash: String, data: String) -> Block {
+        let timestamp = SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .expect("Time went backwards")
+                                .as_millis();
+
+        let hash = Block::calculate_hash(index, timestamp, &previous_hash, &data);
+
+        Block {
+            index,
+            timestamp,
+            previous_hash,
+            data,
+            hash
+        }
     }
 }
